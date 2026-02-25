@@ -1,62 +1,45 @@
 import { Router } from 'express'
+import { authenticate } from '../middleware/auth.middleware.js'
+import { VaultService } from '../services/vault.service.js'
+import { VaultStatus } from '@prisma/client'
 
 export const vaultsRouter = Router()
 
-// In-memory placeholder; replace with DB (e.g. PostgreSQL) later
-const vaults: Array<{
-  id: string
-  creator: string
-  amount: string
-  startTimestamp: string
-  endTimestamp: string
-  successDestination: string
-  failureDestination: string
-  status: 'active' | 'completed' | 'failed' | 'cancelled'
-  createdAt: string
-}> = []
+// List vaults with filtering and pagination
+vaultsRouter.get('/', authenticate, async (req, res) => {
+  const { status, minAmount, maxAmount, startDate, endDate, page, limit } = req.query
 
-vaultsRouter.get('/', (_req, res) => {
-  res.json({ vaults })
+  try {
+    const result = await VaultService.listVaults(
+      {
+        status: status as VaultStatus,
+        minAmount: minAmount as string,
+        maxAmount: maxAmount as string,
+        startDate: startDate as string,
+        endDate: endDate as string,
+      },
+      {
+        page: page ? parseInt(page as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+      },
+      req.user!.userId,
+      req.user!.role
+    )
+    res.json(result)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
 })
 
-vaultsRouter.post('/', (req, res) => {
-  const {
-    creator,
-    amount,
-    endTimestamp,
-    successDestination,
-    failureDestination,
-  } = req.body as Record<string, string>
+// Get vault detail
+vaultsRouter.get('/:id', authenticate, async (req, res) => {
+  const { id } = req.params
 
-  if (!creator || !amount || !endTimestamp || !successDestination || !failureDestination) {
-    res.status(400).json({
-      error: 'Missing required fields: creator, amount, endTimestamp, successDestination, failureDestination',
-    })
-    return
+  try {
+    const vault = await VaultService.getVaultDetails(id, req.user!.userId, req.user!.role)
+    res.json(vault)
+  } catch (error: any) {
+    const status = error.message.includes('Forbidden') ? 403 : 404
+    res.status(status).json({ error: error.message })
   }
-
-  const id = `vault-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-  const startTimestamp = new Date().toISOString()
-  const vault = {
-    id,
-    creator,
-    amount,
-    startTimestamp,
-    endTimestamp,
-    successDestination,
-    failureDestination,
-    status: 'active' as const,
-    createdAt: startTimestamp,
-  }
-  vaults.push(vault)
-  res.status(201).json(vault)
-})
-
-vaultsRouter.get('/:id', (req, res) => {
-  const vault = vaults.find((v) => v.id === req.params.id)
-  if (!vault) {
-    res.status(404).json({ error: 'Vault not found' })
-    return
-  }
-  res.json(vault)
 })
