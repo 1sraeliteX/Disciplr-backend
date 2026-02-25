@@ -23,6 +23,8 @@ import { getPgPool } from '../db/pool.js'
 
 export const vaultsRouter = Router()
 
+export type { Vault, VaultStatusUpdate } from '../types/vault.js'
+
 /**
  * GET /
  * Lists vaults with support for filtering, sorting, and pagination.
