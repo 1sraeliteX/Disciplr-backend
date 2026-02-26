@@ -1,3 +1,7 @@
+import { Router, Request, Response } from 'express'
+import { queryParser } from '../middleware/queryParser.js'
+import { applyFilters, applySort, paginateArray } from '../utils/pagination.js'
+import { utcNow } from '../utils/timestamps.js'
 import { Router } from 'express'
 import {
   getOverallAnalytics,
@@ -44,7 +48,7 @@ analyticsRouter.get('/overview', authenticateApiKey(['read:analytics']), (_req, 
       completedVaults: 12,
       totalValueLocked: '42000',
     },
-    generatedAt: new Date().toISOString(),
+    generatedAt: utcNow(),
   })
 })
 
@@ -55,7 +59,7 @@ analyticsRouter.get('/vaults', authenticateApiKey(['read:vaults']), (_req: Reque
       activeVaults: 4,
       completionRate: 0.75,
     },
-    generatedAt: new Date().toISOString(),
+    generatedAt: utcNow(),
   })
 // Valid time periods
 const VALID_PERIODS = ['7d', '30d', '90d', '1y', 'all']

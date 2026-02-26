@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { utcNow } from '../utils/timestamps.js'
 import type { BackgroundJobSystem } from '../jobs/system.js'
 import { getSecurityMetricsSnapshot } from '../security/abuse-monitor.js'
 
@@ -28,7 +29,7 @@ healthRouter.get('/', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'disciplr-backend',
-    timestamp: new Date().toISOString(),
+    timestamp: utcNow(),
   })
 })
 
