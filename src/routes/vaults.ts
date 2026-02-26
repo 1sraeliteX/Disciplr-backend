@@ -104,6 +104,20 @@ vaultsRouter.post('/', (req: Request, res: Response) => {
     failureDestination,
     status: 'active',
     createdAt: startTimestamp,
+    fundedAt: undefined,
+    milestoneValidatedAt: undefined,
+    cancelledAt: undefined,
+    cancellation: undefined,
+    history: [
+      {
+        id: makeId('history'),
+        type: 'created' as const,
+        timestamp: startTimestamp,
+        actor: creator,
+        role: 'creator' as const,
+      },
+    ],
+    validationRecords: [],
   }
 
   vaults.push(vault)
