@@ -1,3 +1,6 @@
+import { app } from './app.js';
+
+const PORT = process.env.PORT ?? 3000;
 import { app } from './app.js'
 const PORT = process.env.PORT ?? 3000
 
@@ -49,6 +52,9 @@ app.use('/api/admin', adminRouter)
 app.use(notFound)
 app.use(errorHandler)
 
+app.listen(PORT, () => {
+  console.log(`Disciplr API listening on http://localhost:${PORT}`);
+});
 app.listen(config.port, () => {
   console.log(`Disciplr API listening on http://localhost:${config.port}`)
 })
