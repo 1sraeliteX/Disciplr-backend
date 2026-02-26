@@ -5,6 +5,82 @@ import { VaultStatus } from '@prisma/client'
 
 export const vaultsRouter = Router()
 
+export type VaultStatus = 'active' | 'completed' | 'failed' | 'cancelled'
+
+// In-memory placeholder; replace with DB (e.g. PostgreSQL) later
+export interface Vault {
+  id: string
+  creator: string
+  amount: string
+  startTimestamp: string
+  endTimestamp: string
+  successDestination: string
+  failureDestination: string
+  status: VaultStatus
+  createdAt: string
+}
+
+type VaultHistory = {
+  id: string
+  vaultId: string
+  oldStatus: string | null
+  newStatus: string
+  reason: string
+  actorUserIdOrAddress: string
+  createdAt: string
+  metadata: Record<string, unknown>
+}
+
+const vaultHistory: Array<VaultHistory> = []
+
+function appendVaultHistory(
+  vaultId: string,
+  oldStatus: string | null,
+  newStatus: string,
+  reason: string,
+  actorUserIdOrAddress: string,
+  metadata: Record<string, unknown> = {}
+) {
+  vaultHistory.push({
+    id: `history-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    vaultId,
+    oldStatus,
+    newStatus,
+    reason,
+    actorUserIdOrAddress,
+    createdAt: new Date().toISOString(),
+    metadata,
+  })
+}
+
+export let vaults: Array<Vault> = []
+
+export const setVaults = (newVaults: Array<Vault>) => {
+  vaults = newVaults
+}
+
+// In-memory placeholder; replace with DB (e.g. PostgreSQL) later
+export let vaults: Array<Vault> = []
+
+export const setVaults = (newVaults: Array<Vault>) => {
+  vaults = newVaults
+}
+
+const makeId = (prefix: string): string =>
+  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
+const getVaultById = (id: string): Vault | undefined => vaults.find((vault) => vault.id === id)
+
+export const cancelVaultById = (id: string):
+  | { vault: Vault; previousStatus: VaultStatus }
+  | { error: 'not_found' | 'already_cancelled' | 'not_cancellable'; currentStatus?: VaultStatus } => {
+  const vault = getVaultById(id)
+  if (!vault) {
+    return { error: 'not_found' }
+  }
+
+  if (vault.status === 'cancelled') {
+    return { error: 'already_cancelled', currentStatus: vault.status }
 // List vaults with filtering and pagination
 vaultsRouter.get('/', authenticate, async (req, res) => {
   const { status, minAmount, maxAmount, startDate, endDate, page, limit } = req.query
@@ -150,6 +226,26 @@ vaultsRouter.post('/', async (req: Request, res: Response) => {
   const pool = getPgPool()
   const client = pool ? await pool.connect() : null
 
+  appendVaultHistory(
+    id,
+    null,
+    'active',
+    'Vault created',
+    creator,
+    { initialAmount: amount }
+  )
+  const actorUserId = req.header('x-user-id') ?? creator
+  createAuditLog({
+    actor_user_id: actorUserId,
+    action: 'vault.created',
+    target_type: 'vault',
+    target_id: vault.id,
+    metadata: {
+      creator,
+      amount,
+      endTimestamp,
+    },
+  })
   try {
     if (client) await client.query('BEGIN')
 
@@ -189,6 +285,15 @@ vaultsRouter.post('/', async (req: Request, res: Response) => {
   }
 })
 
+vaultsRouter.get('/:id/history', (req, res) => {
+  const history = vaultHistory
+    .filter((entry) => entry.vaultId === req.params.id)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  res.json({ history })
+})
+
+vaultsRouter.get('/:id', (req: Request, res: Response) => {
+  const vault = getVaultById(req.params.id)
 /**
  * GET /:id
  */
