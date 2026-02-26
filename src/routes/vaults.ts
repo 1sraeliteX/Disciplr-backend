@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { queryParser } from '../middleware/queryParser.js'
 import { applyFilters, applySort, paginateArray } from '../utils/pagination.js'
+import { isValidISO8601, parseAndNormalizeToUTC, utcNow } from '../utils/timestamps.js'
 
 export const vaultsRouter = Router()
 
@@ -66,14 +67,30 @@ vaultsRouter.post('/', (req: Request, res: Response) => {
     return
   }
 
+  if (!isValidISO8601(endTimestamp)) {
+    res.status(400).json({
+      error: 'endTimestamp must be a valid ISO 8601 datetime with timezone (e.g. 2025-12-31T23:59:59Z)',
+    })
+    return
+  }
+
+  const normalizedEnd = parseAndNormalizeToUTC(endTimestamp)
+
+  if (new Date(normalizedEnd).getTime() <= Date.now()) {
+    res.status(400).json({
+      error: 'endTimestamp must be a future date',
+    })
+    return
+  }
+
   const id = `vault-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-  const startTimestamp = new Date().toISOString()
+  const startTimestamp = utcNow()
   const vault = {
     id,
     creator,
     amount,
     startTimestamp,
-    endTimestamp,
+    endTimestamp: normalizedEnd,
     successDestination,
     failureDestination,
     status: 'active' as const,

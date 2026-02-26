@@ -23,6 +23,10 @@ Data is stored in memory for now. Production would use PostgreSQL, a Horizon lis
 - `POST /api/vaults`: create a vault
 - `GET /api/vaults/:id`: get a vault by id
 
+## Timezone handling
+
+All timestamps are stored, transmitted, and returned in UTC (ISO 8601 with `Z` suffix). Input timestamps must include a timezone designator. See [Timezone Contract](docs/TIMEZONE_CONTRACT.md) for the full specification.
+
 ## Tech stack
 
 - Node.js + TypeScript

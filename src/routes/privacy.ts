@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { vaults, setVaults } from './vaults.js'
+import { utcNow } from '../utils/timestamps.js'
 
 export const privacyRouter = Router()
 
@@ -19,7 +20,7 @@ privacyRouter.get('/export', (req, res) => {
 
     res.json({
         creator,
-        exportDate: new Date().toISOString(),
+        exportDate: utcNow(),
         data: {
             vaults: userData,
         },

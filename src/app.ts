@@ -11,6 +11,10 @@ export const app = express()
 app.use(helmet())
 app.use(cors({ origin: true }))
 app.use(express.json())
+app.use((_req, res, next) => {
+  res.setHeader('X-Timezone', 'UTC')
+  next()
+})
 
 app.use('/api/health', healthRouter)
 app.use('/api/vaults', vaultsRouter)

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { queryParser } from '../middleware/queryParser.js'
 import { applyFilters, applySort, paginateArray } from '../utils/pagination.js'
+import { utcNow } from '../utils/timestamps.js'
 
 export const analyticsRouter = Router()
 
@@ -47,7 +48,7 @@ analyticsRouter.get('/overview', authenticateApiKey(['read:analytics']), (_req, 
       completedVaults: 12,
       totalValueLocked: '42000',
     },
-    generatedAt: new Date().toISOString(),
+    generatedAt: utcNow(),
   })
 })
 
@@ -58,6 +59,6 @@ analyticsRouter.get('/vaults', authenticateApiKey(['read:vaults']), (_req, res) 
       activeVaults: 4,
       completionRate: 0.75,
     },
-    generatedAt: new Date().toISOString(),
+    generatedAt: utcNow(),
   })
 })
