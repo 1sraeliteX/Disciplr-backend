@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express'
 import { queryParser } from '../middleware/queryParser.js'
 import { applyFilters, applySort, paginateArray } from '../utils/pagination.js'
 import { authenticateApiKey } from '../middleware/apiKeyAuth.js'
-import { listMilestoneEvents } from '../services/milestones.js'
 
 export const analyticsRouter = Router()
 
@@ -34,7 +33,7 @@ analyticsRouter.get(
   }
 )
 
-analyticsRouter.get('/overview', authenticateApiKey(['read:analytics']), (_req: Request, res: Response) => {
+analyticsRouter.get('/overview', authenticateApiKey(['read:analytics']), (_req, res) => {
   res.json({
     metrics: {
       activeVaults: 4,
