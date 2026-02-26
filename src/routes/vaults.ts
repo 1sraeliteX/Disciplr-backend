@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express'
 import { queryParser } from '../middleware/queryParser.js'
 import { applyFilters, applySort, paginateArray } from '../utils/pagination.js'
+import { authenticate } from '../middleware/auth.js'
+import { requireUser } from '../middleware/rbac.js'
+import { cancelVault } from '../services/vaultTransitions.js'
 
 export const vaultsRouter = Router()
 
@@ -90,4 +93,20 @@ vaultsRouter.get('/:id', (req: Request, res: Response) => {
     return
   }
   res.json(vault)
+})
+
+vaultsRouter.post('/:id/cancel', authenticate, requireUser, (req: Request, res: Response) => {
+  const vault = vaults.find((v) => v.id === req.params.id)
+  if (!vault) {
+    res.status(404).json({ error: 'Vault not found' })
+    return
+  }
+
+  const result = cancelVault(vault.id, req.user!.sub)
+  if (!result.success) {
+    res.status(409).json({ error: result.error })
+    return
+  }
+
+  res.json({ message: 'Vault cancelled', vault })
 })
