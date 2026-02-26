@@ -1,54 +1,50 @@
 import { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
 
-export interface AuthenticatedRequest extends Request {
-    user?: {
-        id: string
-        role: 'user' | 'admin'
-        email: string
-    }
+export type Role = 'user' | 'verifier' | 'admin'
+
+export interface JwtPayload {
+     sub: string
+     role: Role
+     email?: string
 }
 
-/**
- * Minimal JWT-like token verification stub.
- * Replace with a real JWT library (e.g. jsonwebtoken) in production.
- *
- * Expected header:  Authorization: Bearer <token>
- * Token format (base64url):  { userId, role, email, exp }
- */
-export function authenticate(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction,
-): void {
-    const authHeader = req.headers.authorization
-    if (!authHeader?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Missing or invalid Authorization header' })
-        return
-    }
-
-    const token = authHeader.slice(7)
-    try {
-        // --- stub decode (replace with jwt.verify in production) ---
-        const payload = JSON.parse(
-            Buffer.from(token.split('.')[1] ?? token, 'base64url').toString(),
-        ) as { userId: string; role: string; email: string; exp: number }
-
-        if (payload.exp && Date.now() / 1000 > payload.exp) {
-            res.status(401).json({ error: 'Token expired' })
-            return
-        }
-
-        req.user = {
-            id: payload.userId,
-            role: payload.role === 'admin' ? 'admin' : 'user',
-            email: payload.email,
-        }
-        next()
-    } catch {
-        res.status(401).json({ error: 'Invalid token' })
-    }
+declare global {
+     namespace Express {
+          interface Request {
+               user?: JwtPayload
+          }
+     }
 }
+
+const JWT_SECRET = process.env.JWT_SECRET ?? 'change-me-in-production'
+
+export function authenticate(req: Request, res: Response, next: NextFunction): void {
+     const authHeader = req.headers.authorization
+
+     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          res.status(401).json({ error: 'Missing or malformed Authorization header' })
+          return
+     }
+
+     const token = authHeader.slice(7)
+
+     try {
+          const payload = jwt.verify(token, JWT_SECRET) as JwtPayload
+          req.user = payload
+          next()
+     } catch (err) {
+          if (err instanceof jwt.TokenExpiredError) {
+               res.status(401).json({ error: 'Token expired' })
+          } else {
+               res.status(401).json({ error: 'Invalid token' })
+          }
+     }
+}
+
+export function signToken(payload: JwtPayload, expiresIn = '1h'): string {
+     return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions)
 
 export function requireAdmin(
     req: AuthenticatedRequest,
